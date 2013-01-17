@@ -1,0 +1,10 @@
+build
+cmpc
+*__pycache__
+*.so
+*.pyc
+dist
+*egg-info
+*~
+.DS*
+.mexw32
