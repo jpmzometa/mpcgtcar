@@ -3,6 +3,7 @@ cmpc
 *__pycache__
 *.so
 *.pyc
+*.npy
 dist
 *egg-info
 *~
