@@ -7,10 +7,10 @@ from sympy import symbols, cos, sin, solve
 from sympy.matrices import Matrix
 # INPUTS: M=moment, S=steering
 IN_M, IN_S, IN_NUM = (0, 1, 2)
-# STATES: X=absolute position in x (not relative to the band), Y=in y, 
+# STATES: F=absolute forward position (not relative to the band), L=lateral, 
 # A=angle relative to the band (global coordinates), 
 # V=car speed in car coordinates, W=car angular speed in global coordinates
-ST_X, ST_Y, ST_A, ST_V, ST_W, ST_NUM = (0, 1, 2, 3, 4, 5) 
+ST_F, ST_L, ST_A, ST_V, ST_W, ST_NUM = (0, 1, 2, 3, 4, 5) 
 # inputs
 U = Matrix(symbols('u:' + str(IN_NUM)))
 # states
@@ -35,8 +35,8 @@ def orig():
 def full():
     """The original model in [1], expanded to consider the position 
     of the car in the band"""
-    x1d = X[ST_V] * cos(X[ST_A])  # velocity in x direction
-    x2d = X[ST_V] * sin(X[ST_A])  # velocity in y direction
+    x1d = X[ST_V] * cos(X[ST_A])  # velocity in forward direction
+    x2d = X[ST_V] * sin(X[ST_A])  # velocity in lateral direction
     x3d = X[ST_W]  # the angular velocity
     x4d, x5d = orig()
     return Matrix([x1d, x2d, x3d, x4d, x5d])
@@ -53,7 +53,7 @@ def compute_linear_system_matrices(xd, param, x_sp):
     DYx = Y.jacobian(X)
     DYu = Y.jacobian(U)
     # state setpoint
-    x_sp = {X[ST_X]:x_sp[ST_X], X[ST_Y]:x_sp[ST_Y], X[ST_A]:x_sp[ST_A],
+    x_sp = {X[ST_F]:x_sp[ST_F], X[ST_L]:x_sp[ST_L], X[ST_A]:x_sp[ST_A],
             X[ST_V]:x_sp[ST_V], X[ST_W]:x_sp[ST_W]}
     
     Y_sp = Y.subs(x_sp)
@@ -67,7 +67,11 @@ def compute_linear_system_matrices(xd, param, x_sp):
 
     Ac = DYx.subs(x_sp)
     Bc = DYu.subs(u_sp)
-    return (Ac, Bc)
+    u_spl = []
+    for k in range(IN_NUM):
+        u_spl.append(u_sp[U[k]])  # make a list from the dictionary u_sp
+        
+    return (Ac, Bc, u_spl)
 
 
 def _in_aff():

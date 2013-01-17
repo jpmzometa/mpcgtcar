@@ -1,8 +1,3 @@
-'''
-Created on Jan 9, 2013
-
-@author: chito
-'''
 from sys import path
 
 from sympy.matrices import Matrix
@@ -12,16 +7,16 @@ from scipy.integrate import ode
 
 path.append('../setup')
 import nlmodel
-from nlmodel import X, U, ST_X, ST_Y, ST_A, ST_V, ST_W, IN_M, IN_S
+from nlmodel import X, U, ST_F, ST_L, ST_A, ST_V, ST_W, IN_M, IN_S
 
 def f(t, x, u, Y):
-    f_xu = Y.subs([(X[ST_X], x[ST_X]), (X[ST_Y], x[ST_Y]), (X[ST_A], x[ST_A]),
+    f_xu = Y.subs([(X[ST_F], x[ST_F]), (X[ST_L], x[ST_L]), (X[ST_A], x[ST_A]),
                    (X[ST_V], x[ST_V]), (X[ST_W], x[ST_W]), 
                    (U[IN_M], u[IN_M]), (U[IN_S], u[IN_S])])
     return np.array(f_xu).astype('float64')
 
 def J(t, x, u, DY):
-    J_xu = DY.subs([(X[ST_X], x[ST_X]), (X[ST_Y], x[ST_Y]), (X[ST_A], x[ST_A]),
+    J_xu = DY.subs([(X[ST_F], x[ST_F]), (X[ST_L], x[ST_L]), (X[ST_A], x[ST_A]),
                     (X[ST_V], x[ST_V]), (X[ST_W], x[ST_W]), 
                     (U[IN_M], u[IN_M]), (U[IN_S], u[IN_S])])
     return np.array(J_xu).astype('float64')
