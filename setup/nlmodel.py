@@ -5,16 +5,26 @@ Studienarbeit, Andy Schröder."""
 
 from sympy import symbols, cos, sin, solve
 from sympy.matrices import Matrix
-# INPUTS: M=moment, S=steering
+# IN_ = inputs
+# M = moment applied to the driving motor (back)  
+# S = input applied to the steering servomotor 
 IN_M, IN_S, IN_NUM = (0, 1, 2)
-# STATES: F=absolute forward position (not relative to the band), L=lateral, 
-# A=angle relative to the band (global coordinates), 
-# V=car speed in car coordinates, W=car angular speed in global coordinates
-ST_F, ST_L, ST_A, ST_V, ST_W, ST_NUM = (0, 1, 2, 3, 4, 5) 
+# ST_ = states
+# F = car forward position relative to band origin (global coordinates)
+# L = lateral car position relative to band origin (global coordinates)
+# A = angle relative to the band forward axis (global coordinates), 
+# V = car forward speed in car local coordinates, 
+# W = car angular speed in global/local coordinates
+ST_F, ST_L, ST_A, ST_V, ST_W, ST_NUM = (0, 1, 2, 3, 4, 5)
+# CT_ = constant
+# B = band speed
+CT_B, CT_NUM = (0, 1) 
 # inputs
 U = Matrix(symbols('u:' + str(IN_NUM)))
 # states
 X = Matrix(symbols('x:' + str(ST_NUM)))
+# constants
+C = Matrix(symbols('c:' + str(CT_NUM)))
 
 def param():
     """The parameters for the original model in [1]"""
@@ -35,10 +45,11 @@ def orig():
 def full():
     """The original model in [1], expanded to consider the position 
     of the car in the band"""
-    x1d = X[ST_V] * cos(X[ST_A])  # velocity in forward direction
+    Vb = symbols('Vb')  # band speed
+    x1d = X[ST_V] * cos(X[ST_A]) - C[CT_B]  # velocity in forward direction
     x2d = X[ST_V] * sin(X[ST_A])  # velocity in lateral direction
     x3d = X[ST_W]  # the angular velocity
-    x4d, x5d = orig()
+    x4d, x5d = orig()  # cars forward and angular speed (local coordinates)
     return Matrix([x1d, x2d, x3d, x4d, x5d])
 
 def compute_linear_system_matrices(xd, param, x_sp):
@@ -72,28 +83,3 @@ def compute_linear_system_matrices(xd, param, x_sp):
         u_spl.append(u_sp[U[k]])  # make a list from the dictionary u_sp
         
     return (Ac, Bc, u_spl)
-
-
-def _in_aff():
-    """TEST: Model in [1] but affine in the inputs."""
-    # Observation dictates that it is the same to linearize the original model
-    # and simply divide by two the corresponding term of B matrix
-    # i.e. the one that relates u0 to x0d
-    # parameters
-    p1a = -5.3  # taken such that at setpoint 1 m/s is similar to orig. model
-    p2 = -1.555
-    p3 = -1.2697
-    p4 = 1.2282
-    p5 = 0.2464
-    p6 = -20.0
-    p7 = 0.  # epsilon = 0.01, not used for setpoint != 0 
-    
-    # inputs
-    u0, u1 = symbols('u:2')
-    # states
-    x0, x1 = symbols('x:2')
-    # differential equation
-    x0d = p1a*p2*(u0) + p2*x0 + p3*(x0**2)*(x1**2)
-    x1d = p4*(u1 + p5) + p6 * (x1/(x0 + p7))
-    # set-point
-    return (x0d, x1d)    

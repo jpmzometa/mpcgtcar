@@ -8,49 +8,33 @@ import gtcar1sim
 import exactqp
 path.append('../setup')
 import gtcar1
-from nlmodel import IN_NUM, ST_NUM, ST_F
+from nlmodel import IN_NUM, ST_NUM, CT_NUM, ST_V, CT_B
 
 ROWS, COLS = (0, 1)
 dt = gtcar1.dt
-
-def sim_open_loop():
-    u_t0 = np.zeros([1, 200])
-    u_t1 = np.ones([1, 600])
-    u_t01 = np.concatenate([u_t0, u_t1, u_t0], COLS)
-    u_t = np.concatenate([u_t01*0.15, u_t01*-0.2464])
-    x_t = np.zeros([2, u_t.shape[COLS]+1])
-    car = gtcar1sim.GTCarSim(dt)
-    x_t[:, 0] = np.array([0.0, 0])
-    for k, uk in enumerate(u_t.T):
-        x_t[:,k+1] = car.sim_zoh(x_t[:,k], uk)
-    u_tp = np.concatenate([u_t, np.zeros([2, 1])], COLS)
-    print('saving data to file')
-    np.save('open_loop_sim', np.concatenate([x_t, u_tp]))
     
-def sim_closed_loop(mpc, cvx=None):
-    samp = 400
+def sim_closed_loop_orig_stab(mpc, cvx=None):
+    # stabilization of the origin
+    samp = 1000
     u_t = np.zeros([IN_NUM, samp])
     x_t = np.zeros([ST_NUM, samp+1])
+    c_t = np.zeros([CT_NUM, samp+1])
     # noise
     w_t = ((np.random.rand(ST_NUM, samp + 1) - 0.5) * 
            [[1e-1], [1e-1], [1e-3], [1e-2], [1e-3]])
-    # The car position relative to the band in the forward direction
-    x_b_ST_F = (np.random.rand(1, samp + 1) - 0.5) * 1e-1
-    # controller
+
+    # controller setpoints
     x_sp = gtcar1.x_sp
     u_sp = gtcar1.u_sp
-    # TODO:
-    # 1. The reference trajectory x_ref[ST_F] should be the integration of
-    #    the reference velocity x_sp[ST_V] (in theory). However, better
-    #    will be to the x_ref[ST_F] = x[ST_F] + (the X pos. relative to band) 
-    # start sim
+    c_sp = np.zeros(CT_NUM)
+    c_sp[CT_B] = x_sp[ST_V]  # band velocity is equal to the state setpoint
+    
     car = gtcar1sim.GTCarSim(dt)
     x_t[:, 0] = np.zeros(ST_NUM)
     print('Starting closed-loop simulation...')
     for k in range(samp):
-        x_sp[ST_F] = x_t[ST_F, k]
         x = x_t[:,k] - x_sp
-        x[ST_F] += x_b_ST_F[0, k]  # simulate the relative forward position
+
         if cvx is None:  # mpc approximated solution
             mpc.ctl.solve_problem(x)
             u_opt = mpc.ctl.u_opt
@@ -59,8 +43,9 @@ def sim_closed_loop(mpc, cvx=None):
             cvx.solve_problem(mpc.ctl.qpx)
             u_opt = cvx.u_opt
             
+        c_t[:,k] = c_sp
         u_t[:,k] = u_sp + u_opt[0:IN_NUM].flatten()
-        x_t[:,k+1] = car.sim_zoh(x_t[:,k], u_t[:,k]) + w_t[:,k]
+        x_t[:,k+1] = car.sim_zoh(x_t[:,k], u_t[:,k], c_t[:,k]) + w_t[:,k]
         
         if not (k % (samp/10)):
             print(k, ', x_t:', x_t[:,k])
@@ -99,13 +84,17 @@ def main():
 if __name__ == '__main__':
     #main()
     #sim_open_loop()
-    
+    use_cvx = False
     mpc = muaompc.ltidt.setup_mpc_problem('gtcar1')
     ctl = mpc.ctl
-    ctl.conf.in_iter = 10
+    ctl.conf.in_iter = 1
     ctl.conf.warmstart = 1
-    cvx = exactqp.ExactQPSolverInc(ctl.qpx)
-    sim_closed_loop(mpc, cvx)
-    plot_sim('closed_loop_sim_cvx')
-    
+    if use_cvx:
+        cvx = exactqp.ExactQPSolverInc(ctl.qpx)
+        sim_closed_loop_orig_stab(mpc, cvx)
+        plot_sim('closed_loop_sim_cvx')
+    else:
+        mpc.ctl.conf.in_iter = 10
+        sim_closed_loop_orig_stab(mpc)
+        plot_sim('closed_loop_sim_muao')
     

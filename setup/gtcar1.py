@@ -12,7 +12,7 @@ from nlmodel import IN_NUM, ST_NUM, ST_V
 
 # SET POINT: this has to be considered in the online implementation
 x_sp = np.zeros(ST_NUM)  # all setpoints are zero, unless otherwise stated
-x_sp[ST_V] = 1.  # m/s
+x_sp[ST_V] = 0.7  # m/s, band and car forward speed
 
 xd = nlmodel.full()
 param = nlmodel.param()
