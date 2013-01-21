@@ -1,3 +1,5 @@
+"""Main simulation file of MPC controller."""
+
 from sys import path
 
 import numpy as np
@@ -73,17 +75,8 @@ def plot_sim(name):
     plt.subplot(224)
     plt.plot(t, xu[6,:])
     plt.show()
-
-def main():
-    car = gtcar1sim.GTCarSim(dt)
-    x0 = np.array([0.1, 0])
-    u = np.array([0.15, -0.2])
-    y = car.sim_zoh(x0, u)
-    print(y) 
     
 if __name__ == '__main__':
-    #main()
-    #sim_open_loop()
     use_cvx = False
     mpc = muaompc.ltidt.setup_mpc_problem('gtcar1')
     ctl = mpc.ctl

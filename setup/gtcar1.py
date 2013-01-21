@@ -1,8 +1,5 @@
-'''
-Created on Jan 8, 2013
+"""muAO-MPC system module."""
 
-@author: chito
-'''
 from sympy import symbols
 import numpy as np
 from numpy import diag, eye

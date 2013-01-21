@@ -1,3 +1,5 @@
+"""A class that simulates the nonlinear behaviour of the GT-Car."""
+
 from sys import path
 
 from sympy.matrices import Matrix
